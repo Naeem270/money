@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shared Expense Tracker</title>
+    <style>
+        /* Basic Reset & Root Variables */
+        :root {
+            --primary-color: #007bff; /* Blue */
+            --secondary-color: #6c757d; /* Gray */
+            --success-color: #28a745; /* Green */
+            --danger-color: #dc3545; /* Red */
+            --warning-color: #ffc107; /* Yellow */
+            --light-color: #f8f9fa;
+            --dark-color: #343a40;
+            --background-color: #eef2f7; /* Light blue-grey background */
+            --card-bg: #ffffff;
+            --text-color: #333;
+            --border-color: #dee2e6;
+            --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            font-size: 16px;
+        }
+
+        body {
+            font-family: var(--font-family);
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--background-color);
+            padding: 1rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        header h1 {
+            color: var(--primary-color);
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            box-shadow: var(--box-shadow);
+        }
+
+        .card h2 {
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+            font-size: 1.3rem;
+        }
+
+        /* Form Styling */
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .form-group input[type="text"],
+        .form-group input[type="number"],
+        .form-group select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .form-group select {
+            appearance: none; /* Custom arrow maybe later */
+            background-color: #fff;
+        }
+
+        .form-group-inline {
+            display: flex;
+            gap: 1rem;
+            align-items: flex-end; /* Align items to bottom for labels */
+        }
+
+        .amount-group {
+            flex: 2; /* Give more space to amount */
+        }
+        .currency-group {
+            flex: 1;
+        }
+
+
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: normal; /* Normal weight for checkbox labels */
+            cursor: pointer;
+        }
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+            cursor: pointer;
+            transform: scale(1.2); /* Make checkbox slightly larger */
+        }
+
+
+        .error-message {
+            color: var(--danger-color);
+            font-size: 0.9rem;
+            margin-top: 0.3rem;
+        }
+
+        /* Button Styling */
+        .btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+            text-align: center;
+            transition: background-color 0.2s ease;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+
+        .btn-danger {
+            background-color: var(--danger-color);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+
+        .btn-small {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.8rem;
+        }
+
+
+        /* Table Styling */
+        .table-container {
+            overflow-x: auto; /* Enable horizontal scroll on small screens */
+        }
+
+        #expenses-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        #expenses-table th,
+        #expenses-table td {
+            padding: 0.8rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+            white-space: nowrap; /* Prevent text wrapping */
+        }
+
+        #expenses-table th {
+            background-color: var(--light-color);
+            font-weight: bold;
+            color: var(--secondary-color);
+            text-transform: uppercase;
+            font-size: 0.9rem;
+        }
+
+        #expenses-table tbody tr:hover {
+            background-color: #f1f1f1;
+        }
+
+        #expenses-table td:last-child {
+            text-align: center;
+        }
+
+        .amount-currency {
+            font-weight: bold;
+        }
+        .participants-list {
+            font-size: 0.9em;
+            color: #555;
+            white-space: normal; /* Allow participants to wrap */
+        }
+
+        /* Summary Styling */
+        .summary-section {
+            margin-top: 1rem;
+        }
+
+        #summary-content {
+            margin-bottom: 1rem;
+            line-height: 1.8;
+        }
+        #summary-content p {
+            margin-bottom: 0.5rem;
+        }
+        #summary-content strong {
+            color: var(--dark-color);
+        }
+        .summary-currency-section h3 {
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+            color: var(--secondary-color);
+            font-size: 1.1rem;
+        }
+        .transaction {
+            padding: 0.5rem;
+            background-color: var(--light-color);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+        }
+        .no-transactions {
+            color: var(--success-color);
+            font-style: italic;
+        }
+
+        #clear-data-btn {
+            margin-top: 1rem;
+            float: right;
+        }
+
+        /* Mobile Friendliness */
+        @media (max-width: 768px) {
+            .container {
+                gap: 1rem;
+            }
+            .card {
+                padding: 1rem;
+            }
+            .form-group-inline {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .btn {
+                width: 100%;
+                padding: 0.8rem;
+            }
+            #clear-data-btn {
+                float: none;
+                margin-top: 1rem;
+            }
+            .checkbox-group {
+                gap: 0.5rem 1rem; /* Smaller gap */
+            }
+
+            #expenses-table th,
+            #expenses-table td {
+                padding: 0.6rem; /* Smaller padding */
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Shared Expense Tracker</h1>
+    </header>
+
+    <section class="input-section card">
+        <h2>Add New Expense</h2>
+        <form id="expense-form">
+            <div class="form-group">
+                <label for="payer">Who Paid?</label>
+                <select id="payer" required>
+                    <!-- Options will be populated by JS -->
+                </select>
+            </div>
+
+            <div class="form-group form-group-inline">
+                <div class="amount-group">
+                    <label for="amount">Amount</label>
+                    <input type="number" id="amount" step="0.01" min="0.01" required placeholder="e.g., 50.00">
+                </div>
+                <div class="currency-group">
+                    <label for="currency">Currency</label>
+                    <select id="currency" required>
+                        <option value="NIS">NIS ₪</option>
+                        <option value="EUR">EUR €</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="description">Description</label>
+                <input type="text" id="description" required placeholder="e.g., Dinner at Luigi's">
+            </div>
+
+            <div class="form-group">
+                <label>Split Between (select all that apply):</label>
+                <div id="participants-list" class="checkbox-group">
+                    <!-- Checkboxes will be populated by JS -->
+                </div>
+                <small id="participants-error" class="error-message" style="display: none;">Please select at least one participant.</small>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Add Expense</button>
+        </form>
+    </section>
+
+    <section class="expenses-section card">
+        <h2>Expenses Log</h2>
+        <div class="table-container">
+            <table id="expenses-table">
+                <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Description</th>
+                    <th>Payer</th>
+                    <th>Amount</th>
+                    <th>Participants</th>
+                    <th>Action</th>
+                </tr>
+                </thead>
+                <tbody id="expenses-table-body">
+                <!-- Expense rows will be populated by JS -->
+                </tbody>
+            </table>
+        </div>
+        <div id="no-expenses" style="display: none; text-align: center; padding: 1rem; color: #666;">No expenses logged yet.</div>
+    </section>
+
+    <section class="summary-section card">
+        <h2>Summary: Who Owes Whom?</h2>
+        <div id="summary-content">
+            <!-- Summary will be populated by JS -->
+            <p>Calculating...</p>
+        </div>
+        <button id="clear-data-btn" class="btn btn-danger">Clear All Data</button>
+    </section>
+
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- Configuration ---
+        // !!! IMPORTANT: CHANGE THESE NAMES AS NEEDED !!!
+        const people = ["Naim", "Taysir", "Amir"];
+        const localStorageKey = 'sharedExpenses';
+
+        // --- DOM Elements ---
+        const payerSelect = document.getElementById('payer');
+        const participantsListDiv = document.getElementById('participants-list');
+        const expenseForm = document.getElementById('expense-form');
+        const expensesTableBody = document.getElementById('expenses-table-body');
+        const summaryContentDiv = document.getElementById('summary-content');
+        const clearDataBtn = document.getElementById('clear-data-btn');
+        const amountInput = document.getElementById('amount');
+        const descriptionInput = document.getElementById('description');
+        const currencySelect = document.getElementById('currency');
+        const participantsError = document.getElementById('participants-error');
+        const noExpensesDiv = document.getElementById('no-expenses');
+
+
+        // --- State ---
+        let expenses = [];
+
+        // --- Functions ---
+
+        // Load people into UI elements
+        function populatePeople() {
+            // Payer dropdown
+            payerSelect.innerHTML = ''; // Clear existing
+            people.forEach(person => {
+                const option = document.createElement('option');
+                option.value = person;
+                option.textContent = person;
+                payerSelect.appendChild(option);
+            });
+
+            // Participants checkboxes
+            participantsListDiv.innerHTML = ''; // Clear existing
+            people.forEach(person => {
+                const div = document.createElement('div');
+                const checkboxId = `participant-${person.toLowerCase().replace(/\s+/g, '-')}`;
+                div.innerHTML = `
+                        <input type="checkbox" id="${checkboxId}" name="participants" value="${person}" checked>
+                        <label for="${checkboxId}">${person}</label>
+                    `;
+                participantsListDiv.appendChild(div);
+            });
+        }
+
+        // Load expenses from localStorage
+        function loadExpenses() {
+            const storedExpenses = localStorage.getItem(localStorageKey);
+            expenses = storedExpenses ? JSON.parse(storedExpenses) : [];
+            console.log("Loaded expenses:", expenses);
+        }
+
+        // Save expenses to localStorage
+        function saveExpenses() {
+            localStorage.setItem(localStorageKey, JSON.stringify(expenses));
+            console.log("Saved expenses:", expenses);
+        }
+
+        // Render the expenses table
+        function renderExpensesTable() {
+            expensesTableBody.innerHTML = ''; // Clear existing table
+
+            if (expenses.length === 0) {
+                noExpensesDiv.style.display = 'block';
+                // Ensure table container allows noExpensesDiv to be seen
+                // Instead of hiding the table, maybe just show the message inside tbody
+                // Let's adjust: keep the table visible, show message if tbody is empty
+                expensesTableBody.parentElement.style.display = 'table'; // Keep table structure visible
+                noExpensesDiv.style.display = 'block';
+                return;
+            }
+
+            noExpensesDiv.style.display = 'none'; // Hide message if expenses exist
+            expensesTableBody.parentElement.style.display = 'table'; // Ensure table is visible
+
+            // Sort expenses by timestamp descending (newest first)
+            const sortedExpenses = [...expenses].sort((a, b) => b.timestamp - a.timestamp);
+
+
+            sortedExpenses.forEach(expense => {
+                const row = document.createElement('tr');
+                const formattedDate = new Date(expense.timestamp).toLocaleDateString();
+                const formattedAmount = `<span class="amount-currency">${expense.amount.toFixed(2)} ${expense.currency === 'NIS' ? '₪' : '€'}</span>`;
+                const participantsString = expense.participants.join(', ');
+
+                row.innerHTML = `
+                        <td>${formattedDate}</td>
+                        <td>${escapeHtml(expense.description)}</td>
+                        <td>${escapeHtml(expense.payer)}</td>
+                        <td>${formattedAmount}</td>
+                        <td class="participants-list">${escapeHtml(participantsString)}</td>
+                        <td><button class="btn btn-danger btn-small" data-id="${expense.id}">Delete</button></td>
+                    `;
+
+                // Add event listener for delete button
+                row.querySelector('button').addEventListener('click', handleDeleteExpense);
+
+                expensesTableBody.appendChild(row);
+            });
+        }
+
+        // Handle adding a new expense
+        function handleAddExpense(event) {
+            event.preventDefault(); // Prevent form submission
+
+            const payer = payerSelect.value;
+            const amount = parseFloat(amountInput.value);
+            const currency = currencySelect.value;
+            const description = descriptionInput.value.trim();
+            const participantCheckboxes = participantsListDiv.querySelectorAll('input[name="participants"]:checked');
+            const participants = Array.from(participantCheckboxes).map(cb => cb.value);
+
+            // Validation
+            participantsError.style.display = 'none'; // Hide error initially
+            if (participants.length === 0) {
+                participantsError.style.display = 'block';
+                // Scroll to error message if needed (optional)
+                participantsError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return; // Stop submission
+            }
+            if (isNaN(amount) || amount <= 0) {
+                alert("Please enter a valid positive amount.");
+                amountInput.focus();
+                return;
+            }
+            if (!description) {
+                alert("Please enter a description.");
+                descriptionInput.focus();
+                return;
+            }
+
+
+            const newExpense = {
+                id: Date.now(), // Simple unique ID using timestamp
+                timestamp: Date.now(),
+                payer: payer,
+                amount: amount,
+                currency: currency,
+                description: description,
+                participants: participants
+            };
+
+            expenses.push(newExpense);
+            saveExpenses();
+            renderExpensesTable();
+            renderSummary();
+
+            // Reset form
+            expenseForm.reset();
+            // Re-check all participant checkboxes by default
+            participantsListDiv.querySelectorAll('input[name="participants"]').forEach(cb => cb.checked = true);
+
+            // Optional: Scroll to summary or expenses table
+            document.querySelector('.summary-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+            console.log("Added expense:", newExpense);
+        }
+
+        // Handle deleting an expense
+        function handleDeleteExpense(event) {
+            const expenseId = parseInt(event.target.dataset.id, 10);
+            if (confirm("Are you sure you want to delete this expense?")) {
+                expenses = expenses.filter(expense => expense.id !== expenseId);
+                saveExpenses();
+                renderExpensesTable();
+                renderSummary();
+                console.log("Deleted expense with ID:", expenseId);
+            }
+        }
+
+        // Calculate final balances and who owes whom
+        function calculateSummary() {
+            const balances = {}; // { Person: { NIS: 0, EUR: 0 } }
+            const currencies = ['NIS', 'EUR'];
+
+            // Initialize balances
+            people.forEach(person => {
+                balances[person] = {};
+                currencies.forEach(currency => {
+                    balances[person][currency] = 0;
+                });
+            });
+
+            // Calculate net balance per person per currency
+            expenses.forEach(expense => {
+                const payer = expense.payer;
+                const amount = expense.amount;
+                const currency = expense.currency;
+                const participants = expense.participants;
+                // Handle division by zero if somehow participants array is empty (should be caught by validation)
+                const share = participants.length > 0 ? amount / participants.length : 0;
+
+
+                // Payer gets credited the full amount
+                if (balances[payer]) {
+                    balances[payer][currency] += amount;
+                } else {
+                    console.warn(`Payer ${payer} not found in people list for expense ID ${expense.id}`);
+                }
+
+
+                // Each participant gets debited their share
+                participants.forEach(participant => {
+                    if (balances[participant]) {
+                        balances[participant][currency] -= share;
+                    } else {
+                        console.warn(`Participant ${participant} not found in people list for expense ID ${expense.id}`);
+                    }
+
+                });
+            });
+
+            // --- Simplify debts for each currency ---
+            const transactions = { NIS: [], EUR: [] };
+            const epsilon = 0.01; // Tolerance for floating point comparisons (~1 agora / 1 cent)
+
+            currencies.forEach(currency => {
+                const currentBalances = people.map(person => ({ name: person, balance: balances[person][currency] }));
+
+                const debtors = currentBalances.filter(p => p.balance < -epsilon).sort((a, b) => a.balance - b.balance); // Most negative first
+                const creditors = currentBalances.filter(p => p.balance > epsilon).sort((a, b) => b.balance - a.balance); // Most positive first
+
+                let debtorIndex = 0;
+                let creditorIndex = 0;
+
+                while (debtorIndex < debtors.length && creditorIndex < creditors.length) {
+                    const debtor = debtors[debtorIndex];
+                    const creditor = creditors[creditorIndex];
+                    const amountToTransfer = Math.min(Math.abs(debtor.balance), creditor.balance);
+
+                    if (amountToTransfer > epsilon) { // Only record meaningful transfers
+                        transactions[currency].push({
+                            from: debtor.name,
+                            to: creditor.name,
+                            amount: amountToTransfer
+                        });
+
+                        debtor.balance += amountToTransfer;
+                        creditor.balance -= amountToTransfer;
+                    }
+
+
+                    // Move to next debtor if their balance is settled (within tolerance)
+                    if (Math.abs(debtor.balance) < epsilon) {
+                        debtorIndex++;
+                    }
+                    // Move to next creditor if their balance is settled (within tolerance)
+                    if (creditor.balance < epsilon) {
+                        creditorIndex++;
+                    }
+                }
+            });
+
+            return transactions; // { NIS: [{from, to, amount}], EUR: [...] }
+        }
+
+        // Render the summary section
+        function renderSummary() {
+            const summary = calculateSummary();
+            summaryContentDiv.innerHTML = ''; // Clear previous summary
+
+            let hasAnyTransactions = false;
+
+            ['NIS', 'EUR'].forEach(currency => {
+                const currencyTransactions = summary[currency];
+                const currencySymbol = currency === 'NIS' ? '₪' : '€';
+
+                const currencySection = document.createElement('div');
+                currencySection.classList.add('summary-currency-section');
+                currencySection.innerHTML = `<h3>${currency} Balances:</h3>`;
+
+                if (currencyTransactions.length === 0) {
+                    currencySection.innerHTML += `<p class="no-transactions">Everyone is settled up in ${currency}.</p>`;
+                } else {
+                    hasAnyTransactions = true; // Mark that we found some transactions
+                    const ul = document.createElement('ul');
+                    ul.style.listStyle = 'none'; // Remove default list styling
+                    ul.style.paddingLeft = '0';
+
+                    currencyTransactions.forEach(t => {
+                        const li = document.createElement('li');
+                        li.classList.add('transaction');
+                        li.innerHTML = `
+                                <strong>${escapeHtml(t.from)}</strong> owes <strong>${escapeHtml(t.to)}</strong>
+                                <span class="amount-currency">${t.amount.toFixed(2)} ${currencySymbol}</span>
+                            `;
+                        ul.appendChild(li);
+                    });
+                    currencySection.appendChild(ul);
+                }
+                summaryContentDiv.appendChild(currencySection);
+            });
+
+            if (!hasAnyTransactions && expenses.length > 0) {
+                // If there are expenses, but no transactions needed (maybe balanced out perfectly across all currencies)
+                const p = document.createElement('p');
+                p.classList.add('no-transactions');
+                p.style.marginTop = '1rem'; // Add some space
+                p.textContent = "Overall, everyone is settled up based on the logged expenses.";
+                summaryContentDiv.appendChild(p);
+            } else if (expenses.length === 0) {
+                const p = document.createElement('p');
+                p.textContent = "Add some expenses to see the balance summary.";
+                summaryContentDiv.appendChild(p);
+            }
+        }
+
+        // Handle clearing all data
+        function handleClearData() {
+            if (confirm("Are you sure you want to delete ALL expense data? This cannot be undone.")) {
+                expenses = [];
+                localStorage.removeItem(localStorageKey);
+                renderExpensesTable();
+                renderSummary();
+                console.log("All data cleared.");
+            }
+        }
+
+        // Utility to escape HTML to prevent XSS
+        function escapeHtml(unsafe) {
+            if (typeof unsafe !== 'string') {
+                // Handle cases where input might not be a string (e.g., if data gets corrupted)
+                console.warn("Attempted to escape non-string value:", unsafe);
+                return '';
+            }
+            return unsafe
+                .replace(/&/g, "&")
+                .replace(/</g, "<")
+                .replace(/>/g, ">")
+                .replace(/"/g, "&quot;") // <--- THIS IS THE CORRECTED LINE
+                .replace(/'/g, "'");
+        }
+
+
+        // --- Initialization ---
+        populatePeople();
+        loadExpenses();
+        renderExpensesTable();
+        renderSummary();
+
+        // --- Event Listeners ---
+        expenseForm.addEventListener('submit', handleAddExpense);
+        clearDataBtn.addEventListener('click', handleClearData);
+        // Add listener to participant checkboxes wrapper to clear error on change
+        participantsListDiv.addEventListener('change', () => {
+            const anyChecked = participantsListDiv.querySelector('input[name="participants"]:checked');
+            participantsError.style.display = anyChecked ? 'none' : 'block';
+        });
+
+    }); // End DOMContentLoaded
+</script>
+
+</body>
+</html>
