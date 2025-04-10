@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shared Expense Tracker</title>
+    <style>
+        /* Basic Reset & Root Variables */
+        :root {
+            --primary-color: #007bff; /* Blue */
+            --secondary-color: #6c757d; /* Gray */
+            --success-color: #28a745; /* Green */
+            --danger-color: #dc3545; /* Red */
+            --warning-color: #ffc107; /* Yellow */
+            /* Added for Edit feature */
+            --info-color: #17a2b8;  /* Teal for Edit */
+            --light-color: #f8f9fa;
+            --dark-color: #343a40;
+            --background-color: #eef2f7; /* Light blue-grey background */
+            --card-bg: #ffffff;
+            --text-color: #333;
+            --border-color: #dee2e6;
+            --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            font-size: 16px;
+            /* Added for Edit feature */
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: var(--font-family);
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--background-color);
+            padding: 1rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        header h1 {
+            color: var(--primary-color);
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            box-shadow: var(--box-shadow);
+        }
+
+        .card h2 {
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+            font-size: 1.3rem;
+        }
+
+        /* Form Styling */
+        /* Added for Edit feature */
+        #expense-form {
+            transition: background-color 0.3s ease;
+        }
+        #expense-form.editing-mode {
+            border-radius: var(--border-radius);
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .form-group input[type="text"],
+        .form-group input[type="number"],
+        .form-group select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .form-group select {
+            appearance: none; /* Custom arrow maybe later */
+            background-color: #fff;
+        }
+
+        .form-group-inline {
+            display: flex;
+            gap: 1rem;
+            align-items: flex-end; /* Align items to bottom for labels */
+        }
+
+        .amount-group {
+            flex: 2; /* Give more space to amount */
+        }
+        .currency-group {
+            flex: 1;
+        }
+
+
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: normal; /* Normal weight for checkbox labels */
+            cursor: pointer;
+        }
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+            cursor: pointer;
+            transform: scale(1.2); /* Make checkbox slightly larger */
+        }
+
+
+        .error-message {
+            color: var(--danger-color);
+            font-size: 0.9rem;
+            margin-top: 0.3rem;
+        }
+
+        /* Button Styling */
+        /* Added for Edit feature: .form-actions wrapper */
+        .form-actions {
+            margin-top: 1.5rem;
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+            text-align: center;
+            transition: background-color 0.2s ease, opacity 0.2s ease;
+            /* Added for Edit feature: flex-grow */
+            flex-grow: 1;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+
+        /* Added for Edit feature: New button styles */
+        .btn-success {
+            background-color: var(--success-color);
+            color: white;
+        }
+        .btn-success:hover {
+            background-color: #218838;
+        }
+        .btn-secondary {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
+        .btn-info {
+             background-color: var(--info-color);
+             color: white;
+        }
+        .btn-info:hover {
+             background-color: #138496;
+        }
+
+        .btn-danger {
+            background-color: var(--danger-color);
+            color: white;
+        }
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+
+        .btn-small {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.8rem;
+            /* Added for Edit feature: prevent small buttons growing */
+            flex-grow: 0;
+        }
+
+        /* Added for Edit feature: Hide new buttons */
+        #update-expense-btn,
+        #cancel-edit-btn {
+            display: none;
+        }
+
+
+        /* Table Styling */
+        .table-container {
+            overflow-x: auto; /* Enable horizontal scroll on small screens */
+        }
+
+        #expenses-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        #expenses-table th,
+        #expenses-table td {
+            padding: 0.8rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+            white-space: nowrap; /* Prevent text wrapping */
+        }
+
+        #expenses-table th {
+            background-color: var(--light-color);
+            font-weight: bold;
+            color: var(--secondary-color);
+            text-transform: uppercase;
+            font-size: 0.9rem;
+        }
+
+        #expenses-table tbody tr:hover {
+            background-color: #f1f1f1;
+        }
+
+        /* Modified for Edit feature: Use actions class, align right */
+        #expenses-table td.actions {
+            text-align: right;
+            white-space: nowrap;
+        }
+        /* Added for Edit feature: spacing */
+        #expenses-table td.actions .btn {
+             margin-left: 0.3rem;
+        }
+
+
+        .amount-currency {
+            font-weight: bold;
+        }
+        .participants-list {
+            font-size: 0.9em;
+            color: #555;
+            white-space: normal; /* Allow participants to wrap */
+        }
+
+        /* Summary Styling */
+        .summary-section {
+            margin-top: 1rem;
+        }
+
+        #summary-content {
+            margin-bottom: 1rem;
+            line-height: 1.8;
+        }
+        #summary-content p {
+            margin-bottom: 0.5rem;
+        }
+        #summary-content strong {
+            color: var(--dark-color);
+        }
+        .summary-currency-section h3 {
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+            color: var(--secondary-color);
+            font-size: 1.1rem;
+        }
+        .transaction {
+            padding: 0.5rem;
+            background-color: var(--light-color);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+        }
+        .no-transactions {
+            color: var(--success-color);
+            font-style: italic;
+        }
+
+        /* Modified for Edit feature: Put button in container for alignment */
+        #clear-data-btn-container {
+            margin-top: 1rem;
+            text-align: right;
+        }
+        #clear-data-btn {
+            margin-top: 0; /* Reset margin */
+            float: none; /* Remove float */
+        }
+
+
+        /* Mobile Friendliness */
+        @media (max-width: 768px) {
+            .container {
+                gap: 1rem;
+            }
+            .card {
+                padding: 1rem;
+            }
+            .form-group-inline {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            /* Modified for Edit feature: Adjust button widths */
+            .btn {
+                min-width: 100px;
+            }
+             .form-actions .btn {
+                width: calc(50% - 0.25rem);
+            }
+             .form-actions .btn:last-child:nth-child(odd) {
+                width: 100%;
+            }
+
+            #clear-data-btn-container {
+               text-align: center;
+            }
+             #clear-data-btn {
+               width: 100%;
+               margin-top: 1rem;
+            }
+            .checkbox-group {
+                gap: 0.5rem 1rem; /* Smaller gap */
+            }
+
+            #expenses-table th,
+            #expenses-table td {
+                padding: 0.6rem; /* Smaller padding */
+                font-size: 0.9rem;
+            }
+            /* Added for Edit feature: Mobile action button styles */
+             #expenses-table td.actions {
+                text-align: left;
+             }
+             #expenses-table td.actions .btn {
+                 display: block;
+                 width: 80px;
+                 margin-left: 0;
+                 margin-bottom: 0.3rem;
+                 text-align: center;
+             }
+             #expenses-table td.actions .btn:last-child {
+                  margin-bottom: 0;
+              }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Shared Expense Tracker</h1>
+    </header>
+
+    <!-- Added ID for scrolling -->
+    <section class="input-section card" id="input-section-card">
+         <!-- Added ID for title change -->
+        <h2 id="form-title">Add New Expense</h2>
+        <form id="expense-form">
+            <!-- Added Hidden input for Edit ID -->
+            <input type="hidden" id="editing-expense-id" value="">
+
+            <div class="form-group">
+                <label for="payer">Who Paid?</label>
+                <select id="payer" required>
+                    <!-- Options will be populated by JS -->
+                </select>
+            </div>
+
+            <div class="form-group form-group-inline">
+                <div class="amount-group">
+                    <label for="amount">Amount</label>
+                    <input type="number" id="amount" step="0.01" min="0.01" required placeholder="e.g., 50.00">
+                </div>
+                <div class="currency-group">
+                    <label for="currency">Currency</label>
+                    <select id="currency" required>
+                        <option value="NIS">NIS ₪</option>
+                        <option value="EUR">EUR €</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="description">Description</label>
+                <input type="text" id="description" required placeholder="e.g., Dinner at Luigi's">
+            </div>
+
+            <div class="form-group">
+                <label>Split Between (select all that apply):</label>
+                <div id="participants-list" class="checkbox-group">
+                    <!-- Checkboxes will be populated by JS -->
+                </div>
+                <small id="participants-error" class="error-message" style="display: none;">Please select at least one participant.</small>
+            </div>
+
+             <!-- Added Wrapper for buttons -->
+             <div class="form-actions">
+                 <button type="submit" id="add-expense-btn" class="btn btn-primary">Add Expense</button>
+                 <!-- Added Update Button -->
+                 <button type="submit" id="update-expense-btn" class="btn btn-success">Update Expense</button>
+                 <!-- Added Cancel Button -->
+                 <button type="button" id="cancel-edit-btn" class="btn btn-secondary">Cancel</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="expenses-section card">
+        <h2>Expenses Log</h2>
+        <div class="table-container">
+            <table id="expenses-table">
+                <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Description</th>
+                    <th>Payer</th>
+                    <th>Amount</th>
+                    <th>Participants</th>
+                     <!-- Modified for Edit feature: Align header -->
+                    <th style="text-align:right;">Actions</th>
+                </tr>
+                </thead>
+                <tbody id="expenses-table-body">
+                <!-- Expense rows will be populated by JS -->
+                </tbody>
+            </table>
+        </div>
+        <div id="no-expenses" style="display: none; text-align: center; padding: 1rem; color: #666;">No expenses logged yet.</div>
+    </section>
+
+    <section class="summary-section card">
+        <h2>Summary: Who Owes Whom?</h2>
+        <div id="summary-content">
+            <!-- Summary will be populated by JS -->
+            <p>Calculating...</p>
+        </div>
+         <!-- Modified for Edit feature: Put clear button in container -->
+         <div id="clear-data-btn-container">
+             <button id="clear-data-btn" class="btn btn-danger">Clear All Data</button>
+         </div>
+    </section>
+
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- Configuration ---
+        const people = ["Naim", "Taysir", "Amir"]; // Using your names
+        const localStorageKey = 'sharedExpenses';
+
+        // --- DOM Elements ---
+        const payerSelect = document.getElementById('payer');
+        const participantsListDiv = document.getElementById('participants-list');
+        const expenseForm = document.getElementById('expense-form');
+        const expensesTableBody = document.getElementById('expenses-table-body');
+        const summaryContentDiv = document.getElementById('summary-content');
+        const clearDataBtn = document.getElementById('clear-data-btn');
+        const amountInput = document.getElementById('amount');
+        const descriptionInput = document.getElementById('description');
+        const currencySelect = document.getElementById('currency');
+        const participantsError = document.getElementById('participants-error');
+        const noExpensesDiv = document.getElementById('no-expenses');
+        // Added for Edit feature
+        const addExpenseBtn = document.getElementById('add-expense-btn');
+        const updateExpenseBtn = document.getElementById('update-expense-btn');
+        const cancelEditBtn = document.getElementById('cancel-edit-btn');
+        const editingExpenseIdInput = document.getElementById('editing-expense-id');
+        const formTitle = document.getElementById('form-title');
+        const inputSectionCard = document.getElementById('input-section-card');
+
+
+        // --- State ---
+        let expenses = [];
+
+        // --- Functions ---
+
+        // Load people into UI elements
+        function populatePeople() {
+            payerSelect.innerHTML = '';
+            people.forEach(person => {
+                const option = document.createElement('option');
+                option.value = person;
+                option.textContent = person;
+                payerSelect.appendChild(option);
+            });
+            populateParticipantsCheckboxes(); // Also populate checkboxes
+        }
+
+        // Populate participant checkboxes
+        function populateParticipantsCheckboxes() {
+             participantsListDiv.innerHTML = '';
+             people.forEach(person => {
+                 const div = document.createElement('div');
+                 const safePersonId = person.toLowerCase().replace(/[^a-z0-9_]/g, '-');
+                 const checkboxId = `participant-${safePersonId}`;
+                 div.innerHTML = `
+                     <input type="checkbox" id="${checkboxId}" name="participants" value="${person}">
+                     <label for="${checkboxId}">${escapeHtml(person)}</label>
+                 `;
+                 participantsListDiv.appendChild(div);
+             });
+             checkDefaultParticipants();
+        }
+
+        // Check default participants
+        function checkDefaultParticipants() {
+             participantsListDiv.querySelectorAll('input[name="participants"]').forEach(cb => cb.checked = true);
+        }
+
+        // Load expenses from localStorage
+        function loadExpenses() {
+            const storedExpenses = localStorage.getItem(localStorageKey);
+            try {
+                expenses = storedExpenses ? JSON.parse(storedExpenses) : [];
+                if (!Array.isArray(expenses)) {
+                    console.warn("Stored data is not an array, resetting.");
+                    expenses = [];
+                }
+            } catch (e) {
+                console.error("Error parsing stored expenses:", e);
+                expenses = [];
+            }
+            console.log("Loaded expenses:", expenses);
+        }
+
+        // Save expenses to localStorage
+        function saveExpenses() {
+            try {
+                localStorage.setItem(localStorageKey, JSON.stringify(expenses));
+                console.log("Saved expenses:", expenses);
+            } catch (e) {
+                 console.error("Error saving expenses to localStorage:", e);
+                 alert("Could not save expenses. LocalStorage might be full or disabled.");
+            }
+        }
+
+        // Added for Edit feature: Set Form Mode
+        function setFormMode(mode, expenseId = null) {
+            expenseForm.reset();
+            checkDefaultParticipants();
+            participantsError.style.display = 'none';
+
+            if (mode === 'edit') {
+                editingExpenseIdInput.value = expenseId;
+                addExpenseBtn.style.display = 'none';
+                updateExpenseBtn.style.display = 'inline-block';
+                cancelEditBtn.style.display = 'inline-block';
+                formTitle.textContent = 'Update Expense';
+                expenseForm.classList.add('editing-mode');
+                 inputSectionCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else { // 'add' mode
+                editingExpenseIdInput.value = '';
+                addExpenseBtn.style.display = 'inline-block';
+                updateExpenseBtn.style.display = 'none';
+                cancelEditBtn.style.display = 'none';
+                formTitle.textContent = 'Add New Expense';
+                expenseForm.classList.remove('editing-mode');
+            }
+        }
+
+        // Render the expenses table
+        function renderExpensesTable() {
+            expensesTableBody.innerHTML = '';
+
+            if (!expenses || expenses.length === 0) {
+                noExpensesDiv.style.display = 'block';
+                if (expensesTableBody.parentElement) {
+                     expensesTableBody.parentElement.style.display = 'none';
+                }
+                return;
+            }
+
+            noExpensesDiv.style.display = 'none';
+             if (expensesTableBody.parentElement) {
+                 expensesTableBody.parentElement.style.display = 'table';
+             }
+
+            const sortedExpenses = [...expenses].sort((a, b) => b.timestamp - a.timestamp);
+
+            sortedExpenses.forEach(expense => {
+                 if (!expense || typeof expense.id === 'undefined') {
+                    console.warn("Skipping invalid expense object:", expense);
+                    return;
+                 }
+                const row = document.createElement('tr');
+                const formattedDate = expense.timestamp ? new Date(expense.timestamp).toLocaleDateString() : 'N/A';
+                const formattedAmount = `<span class="amount-currency">${expense.amount ? expense.amount.toFixed(2) : '0.00'} ${expense.currency === 'NIS' ? '₪' : '€'}</span>`;
+                const participantsString = Array.isArray(expense.participants) ? expense.participants.join(', ') : '';
+
+                // Modified for Edit feature: Add Edit button and use actions class
+                row.innerHTML = `
+                    <td>${formattedDate}</td>
+                    <td>${escapeHtml(expense.description || '')}</td>
+                    <td>${escapeHtml(expense.payer || '')}</td>
+                    <td>${formattedAmount}</td>
+                    <td class="participants-list">${escapeHtml(participantsString)}</td>
+                    <td class="actions">
+                        <button class="btn btn-info btn-small edit-btn" data-id="${expense.id}">Edit</button>
+                        <button class="btn btn-danger btn-small delete-btn" data-id="${expense.id}">Delete</button>
+                    </td>
+                `;
+
+                // Remove individual listener adding here - will use event delegation
+                expensesTableBody.appendChild(row);
+            });
+        }
+
+        // Modified for Edit feature: Renamed and handles both add/update
+        function handleFormSubmit(event) {
+            event.preventDefault();
+
+            const expenseIdToUpdate = editingExpenseIdInput.value ? parseInt(editingExpenseIdInput.value, 10) : null;
+
+            const payer = payerSelect.value;
+            const amount = parseFloat(amountInput.value);
+            const currency = currencySelect.value;
+            const description = descriptionInput.value.trim();
+            const participantCheckboxes = participantsListDiv.querySelectorAll('input[name="participants"]:checked');
+            const participants = Array.from(participantCheckboxes).map(cb => cb.value);
+
+            participantsError.style.display = 'none';
+            if (participants.length === 0) {
+                participantsError.style.display = 'block';
+                participantsError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+            }
+            if (isNaN(amount) || amount <= 0) {
+                alert("Please enter a valid positive amount.");
+                amountInput.focus();
+                return;
+            }
+            if (!description) {
+                alert("Please enter a description.");
+                descriptionInput.focus();
+                return;
+            }
+
+            if (expenseIdToUpdate) {
+                // UPDATE
+                const expenseIndex = expenses.findIndex(exp => exp && exp.id === expenseIdToUpdate);
+                if (expenseIndex > -1) {
+                    expenses[expenseIndex] = {
+                        ...expenses[expenseIndex],
+                        payer: payer,
+                        amount: amount,
+                        currency: currency,
+                        description: description,
+                        participants: participants
+                    };
+                    console.log("Updated expense:", expenses[expenseIndex]);
+                } else {
+                     console.error("Expense ID not found for update:", expenseIdToUpdate);
+                     alert("Error: Could not find the expense to update.");
+                     setFormMode('add');
+                     return;
+                }
+            } else {
+                // ADD
+                const newExpense = {
+                    id: Date.now(),
+                    timestamp: Date.now(),
+                    payer: payer,
+                    amount: amount,
+                    currency: currency,
+                    description: description,
+                    participants: participants
+                };
+                expenses.push(newExpense);
+                console.log("Added expense:", newExpense);
+            }
+
+            saveExpenses();
+            renderExpensesTable();
+            renderSummary();
+            setFormMode('add'); // Reset to add mode
+        }
+
+        // Added for Edit feature: Handle clicks using event delegation
+        function handleTableActions(event) {
+             const target = event.target;
+             const button = target.closest('button');
+
+             if (!button) return;
+
+             if (button.classList.contains('delete-btn')) {
+                 const expenseId = parseInt(button.dataset.id, 10);
+                 if (!isNaN(expenseId)) handleDeleteExpense(expenseId);
+             } else if (button.classList.contains('edit-btn')) {
+                 const expenseId = parseInt(button.dataset.id, 10);
+                  if (!isNaN(expenseId)) handleStartEditExpense(expenseId);
+             }
+        }
+
+        // Added for Edit feature: Populate form for editing
+        function handleStartEditExpense(expenseId) {
+             const expenseToEdit = expenses.find(exp => exp && exp.id === expenseId);
+             if (!expenseToEdit) {
+                 console.error("Expense not found for editing:", expenseId);
+                 alert("Could not find the expense to edit.");
+                 return;
+             }
+
+             payerSelect.value = expenseToEdit.payer;
+             amountInput.value = expenseToEdit.amount.toFixed(2);
+             currencySelect.value = expenseToEdit.currency;
+             descriptionInput.value = expenseToEdit.description;
+
+             participantsListDiv.querySelectorAll('input[name="participants"]').forEach(cb => {
+                 cb.checked = Array.isArray(expenseToEdit.participants) && expenseToEdit.participants.includes(cb.value);
+             });
+
+             setFormMode('edit', expenseId);
+        }
+
+
+        // Modified for Edit feature: Renamed parameter and check edit mode
+        function handleDeleteExpense(expenseId) { // Renamed parameter for clarity
+             // No longer needs event object
+            if (confirm("Are you sure you want to delete this expense?")) {
+                expenses = expenses.filter(expense => expense && expense.id !== expenseId);
+                saveExpenses();
+                renderExpensesTable();
+                renderSummary();
+                if (editingExpenseIdInput.value && parseInt(editingExpenseIdInput.value, 10) === expenseId) {
+                    setFormMode('add');
+                }
+                console.log("Deleted expense with ID:", expenseId);
+            }
+        }
+
+        // Added for Edit feature: Cancel button handler
+        function handleCancelEdit() {
+             setFormMode('add');
+        }
+
+
+        // Calculate final balances (keeping your original logic)
+        function calculateSummary() {
+            const balances = {};
+            const currencies = ['NIS', 'EUR'];
+            people.forEach(person => {
+                balances[person] = {};
+                currencies.forEach(currency => {
+                    balances[person][currency] = 0;
+                });
+            });
+            (expenses || []).forEach(expense => {
+                if (!expense || typeof expense.amount !== 'number' || !Array.isArray(expense.participants)) {
+                     console.warn("Skipping calculation for invalid expense object:", expense);
+                     return;
+                }
+                const payer = expense.payer;
+                const amount = expense.amount;
+                const currency = expense.currency;
+                const participants = expense.participants;
+                const share = participants.length > 0 ? amount / participants.length : 0;
+                if (balances[payer]) {
+                    balances[payer][currency] += amount;
+                } else {
+                     if (!balances[payer]) balances[payer] = { NIS: 0, EUR: 0 };
+                     balances[payer][currency] += amount;
+                     console.warn(`Payer ${payer} from expense ID ${expense.id} was not in the initial 'people' list, but added to balances.`);
+                }
+                participants.forEach(participant => {
+                     if (balances[participant]) {
+                        balances[participant][currency] -= share;
+                     } else {
+                         if (!balances[participant]) balances[participant] = { NIS: 0, EUR: 0 };
+                         balances[participant][currency] -= share;
+                         console.warn(`Participant ${participant} from expense ID ${expense.id} was not in the initial 'people' list, but added to balances.`);
+                     }
+                });
+            });
+            const transactions = { NIS: [], EUR: [] };
+            const epsilon = 0.01;
+            const involvedPeople = Object.keys(balances);
+            currencies.forEach(currency => {
+                const currentBalances = involvedPeople.map(person => ({ name: person, balance: balances[person][currency] }));
+                const debtors = currentBalances.filter(p => p.balance < -epsilon).sort((a, b) => a.balance - b.balance);
+                const creditors = currentBalances.filter(p => p.balance > epsilon).sort((a, b) => b.balance - a.balance);
+                let debtorIndex = 0;
+                let creditorIndex = 0;
+                while (debtorIndex < debtors.length && creditorIndex < creditors.length) {
+                    const debtor = debtors[debtorIndex];
+                    const creditor = creditors[creditorIndex];
+                    const amountToTransfer = Math.min(Math.abs(debtor.balance), creditor.balance);
+                    if (amountToTransfer > epsilon) {
+                         transactions[currency].push({ from: debtor.name, to: creditor.name, amount: amountToTransfer });
+                        debtor.balance += amountToTransfer;
+                        creditor.balance -= amountToTransfer;
+                    }
+                    if (Math.abs(debtor.balance) < epsilon) debtorIndex++;
+                    if (creditor.balance < epsilon) creditorIndex++;
+                }
+            });
+            return transactions;
+        }
+
+        // Render the summary section (keeping your original logic)
+        function renderSummary() {
+            summaryContentDiv.innerHTML = '<p>Calculating...</p>';
+            try {
+                const summary = calculateSummary();
+                summaryContentDiv.innerHTML = '';
+                let hasAnyTransactions = false;
+                ['NIS', 'EUR'].forEach(currency => {
+                    const currencyTransactions = summary[currency];
+                    const currencySymbol = currency === 'NIS' ? '₪' : '€';
+                    const currencySection = document.createElement('div');
+                    currencySection.classList.add('summary-currency-section');
+                    currencySection.innerHTML = `<h3>${currency} Balances:</h3>`;
+                    if (currencyTransactions.length === 0) {
+                        currencySection.innerHTML += `<p class="no-transactions">Everyone is settled up in ${currency}.</p>`;
+                    } else {
+                        hasAnyTransactions = true;
+                        const ul = document.createElement('ul');
+                        ul.style.listStyle = 'none'; ul.style.paddingLeft = '0';
+                        currencyTransactions.forEach(t => {
+                            const li = document.createElement('li');
+                            li.classList.add('transaction');
+                            li.innerHTML = `
+                                <strong>${escapeHtml(t.from)}</strong> owes <strong>${escapeHtml(t.to)}</strong>
+                                <span class="amount-currency">${t.amount.toFixed(2)} ${currencySymbol}</span>
+                            `;
+                            ul.appendChild(li);
+                        });
+                         currencySection.appendChild(ul);
+                    }
+                    summaryContentDiv.appendChild(currencySection);
+                });
+                 if (!hasAnyTransactions && expenses && expenses.length > 0) {
+                     const p = document.createElement('p');
+                     p.classList.add('no-transactions'); p.style.marginTop = '1rem';
+                     p.textContent = "Overall, everyone is settled up based on the logged expenses.";
+                     summaryContentDiv.appendChild(p);
+                 } else if (!expenses || expenses.length === 0) {
+                      const p = document.createElement('p');
+                      p.textContent = "Add some expenses to see the balance summary.";
+                      summaryContentDiv.appendChild(p);
+                 }
+             } catch (error) {
+                  console.error("Error rendering summary:", error);
+                  summaryContentDiv.innerHTML = '<p style="color: red;">Error calculating summary. Please check console.</p>';
+             }
+        }
+
+        // Handle clearing all data (modified for Edit feature check)
+        function handleClearData() {
+            if (editingExpenseIdInput.value) {
+                if (!confirm("You are currently editing an expense. Clearing all data will discard your changes. Are you sure you want to proceed?")) {
+                     return;
+                }
+                setFormMode('add');
+            }
+            if (confirm("Are you sure you want to delete ALL expense data? This cannot be undone.")) {
+                expenses = [];
+                localStorage.removeItem(localStorageKey);
+                renderExpensesTable();
+                renderSummary();
+                setFormMode('add');
+                console.log("All data cleared.");
+            }
+        }
+
+        // Utility to escape HTML (Using your provided version, though technically incorrect for quotes)
+        // NOTE: This version doesn't properly escape quotes for HTML attributes/content
+        // and might leave vulnerabilities or display issues in complex cases.
+        // The correct replacement for " is " and for ' is ' or '
+        function escapeHtml(unsafe) {
+            if (typeof unsafe !== 'string') {
+                console.warn("Attempted to escape non-string value:", unsafe);
+                return '';
+            }
+            return unsafe
+                .replace(/&/g, "&")
+                .replace(/</g, "<")
+                .replace(/>/g, ">")
+                .replace(/"/g, '"') // Incorrect - should be "
+                .replace(/'/g, "'"); // Incorrect - should be '
+        }
+
+
+        // --- Initialization ---
+        populatePeople();
+        loadExpenses();
+        renderExpensesTable();
+        renderSummary();
+        // Added for Edit feature: Ensure initial state is add mode
+        setFormMode('add');
+
+        // --- Event Listeners ---
+        // Modified for Edit feature: Use handleFormSubmit
+        expenseForm.addEventListener('submit', handleFormSubmit);
+        clearDataBtn.addEventListener('click', handleClearData);
+        // Added for Edit feature: Listeners for new buttons and table actions
+        cancelEditBtn.addEventListener('click', handleCancelEdit);
+        expensesTableBody.addEventListener('click', handleTableActions);
+
+        // Kept your original listener
+        participantsListDiv.addEventListener('change', () => {
+            const anyChecked = participantsListDiv.querySelector('input[name="participants"]:checked');
+             if(participantsError) {
+                participantsError.style.display = anyChecked ? 'none' : 'block';
+             }
+        });
+
+    }); // End DOMContentLoaded
+</script>
+
+</body>
+</html>
