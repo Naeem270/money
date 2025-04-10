@@ -464,8 +464,8 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // --- Configuration ---
-            // !!! IMPORTANT: REPLACE THESE NAMES WITH YOUR ACTUAL GROUP MEMBERS !!!
-            const people = Naim", "Taysir", "Amir"]; // <-- CHANGE NAMES HERE
+            // !!! CORRECTED NAMES AND SYNTAX BELOW !!!
+            const people = ["Naim", "Taysir", "Amir"]; // <-- CORRECTED NAMES AND SYNTAX
             const localStorageKey = 'sharedExpenses';
 
             // --- DOM Elements ---
@@ -500,7 +500,7 @@
                 people.forEach(person => {
                     const option = document.createElement('option');
                     option.value = person;
-                    option.textContent = person;
+                    option.textContent = person; // Use raw name for display/value
                     payerSelect.appendChild(option);
                 });
                 populateParticipantsCheckboxes(); // Also populate checkboxes initially
@@ -516,7 +516,7 @@
                      const checkboxId = `participant-${safePersonId}`;
                      div.innerHTML = `
                          <input type="checkbox" id="${checkboxId}" name="participants" value="${person}">
-                         <label for="${checkboxId}">${escapeHtml(person)}</label>
+                         <label for="${checkboxId}">${escapeHtml(person)}</label> <!-- Escape name for display -->
                      `;
                      participantsListDiv.appendChild(div);
                  });
@@ -954,11 +954,11 @@
                  }
                  // Replace special characters with their HTML entities
                  return unsafe
-                      .replace(/&/g, "&")
+                      .replace(/&/g, "&") // Corrected: Use &
                       .replace(/</g, "<")
                       .replace(/>/g, ">")
-                      .replace(/"/g, """) // Use " for double quotes
-                      .replace(/'/g, "'"); // Use ' for single quotes (or ')
+                      .replace(/"/g, """) // Corrected: Use "
+                      .replace(/'/g, "'"); // Corrected: Use ' or '
              }
 
 
