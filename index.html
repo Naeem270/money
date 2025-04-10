@@ -464,8 +464,8 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // --- Configuration ---
-            // !!! IMPORTANT: CHANGE THESE NAMES AS NEEDED !!!
-            const people = ["Maya", "David", "Sarah"];
+            // !!! IMPORTANT: REPLACE THESE NAMES WITH YOUR ACTUAL GROUP MEMBERS !!!
+            const people = Naim", "Taysir", "Amir"]; // <-- CHANGE NAMES HERE
             const localStorageKey = 'sharedExpenses';
 
             // --- DOM Elements ---
@@ -511,10 +511,12 @@
                  participantsListDiv.innerHTML = '';
                  people.forEach(person => {
                      const div = document.createElement('div');
-                     const checkboxId = `participant-${person.toLowerCase().replace(/\s+/g, '-')}`;
+                     // Generate a safe ID for the checkbox
+                     const safePersonId = person.toLowerCase().replace(/[^a-z0-9_]/g, '-'); // Basic sanitization for ID
+                     const checkboxId = `participant-${safePersonId}`;
                      div.innerHTML = `
                          <input type="checkbox" id="${checkboxId}" name="participants" value="${person}">
-                         <label for="${checkboxId}">${person}</label>
+                         <label for="${checkboxId}">${escapeHtml(person)}</label>
                      `;
                      participantsListDiv.appendChild(div);
                  });
@@ -530,14 +532,28 @@
             // Load expenses from localStorage
             function loadExpenses() {
                 const storedExpenses = localStorage.getItem(localStorageKey);
-                expenses = storedExpenses ? JSON.parse(storedExpenses) : [];
+                try {
+                    expenses = storedExpenses ? JSON.parse(storedExpenses) : [];
+                    if (!Array.isArray(expenses)) { // Basic check if data is corrupted
+                        console.warn("Stored data is not an array, resetting.");
+                        expenses = [];
+                    }
+                } catch (e) {
+                    console.error("Error parsing stored expenses:", e);
+                    expenses = []; // Reset if parsing fails
+                }
                 console.log("Loaded expenses:", expenses);
             }
 
             // Save expenses to localStorage
             function saveExpenses() {
-                localStorage.setItem(localStorageKey, JSON.stringify(expenses));
-                console.log("Saved expenses:", expenses);
+                 try {
+                    localStorage.setItem(localStorageKey, JSON.stringify(expenses));
+                    console.log("Saved expenses:", expenses);
+                } catch (e) {
+                     console.error("Error saving expenses to localStorage:", e);
+                     alert("Could not save expenses. LocalStorage might be full or disabled.");
+                 }
             }
 
             // Set Form Mode (add or edit)
@@ -570,28 +586,39 @@
             function renderExpensesTable() {
                 expensesTableBody.innerHTML = '';
 
-                if (expenses.length === 0) {
+                if (!expenses || expenses.length === 0) { // Added check for null/undefined expenses
                     noExpensesDiv.style.display = 'block';
-                    expensesTableBody.parentElement.style.display = 'none';
+                    if (expensesTableBody.parentElement) { // Check if parent exists
+                         expensesTableBody.parentElement.style.display = 'none';
+                    }
                     return;
                 }
 
                 noExpensesDiv.style.display = 'none';
-                expensesTableBody.parentElement.style.display = 'table';
+                 if (expensesTableBody.parentElement) {
+                     expensesTableBody.parentElement.style.display = 'table';
+                 }
+
 
                 const sortedExpenses = [...expenses].sort((a, b) => b.timestamp - a.timestamp);
 
                 sortedExpenses.forEach(expense => {
+                    // Basic check for valid expense object structure
+                    if (!expense || typeof expense.id === 'undefined') {
+                        console.warn("Skipping invalid expense object:", expense);
+                        return;
+                    }
                     const row = document.createElement('tr');
-                    const formattedDate = new Date(expense.timestamp).toLocaleDateString();
-                    const formattedAmount = `<span class="amount-currency">${expense.amount.toFixed(2)} ${expense.currency === 'NIS' ? '₪' : '€'}</span>`;
-                    const participantsString = expense.participants.join(', ');
+                    const formattedDate = expense.timestamp ? new Date(expense.timestamp).toLocaleDateString() : 'N/A';
+                    const formattedAmount = `<span class="amount-currency">${expense.amount ? expense.amount.toFixed(2) : '0.00'} ${expense.currency === 'NIS' ? '₪' : '€'}</span>`;
+                    const participantsString = Array.isArray(expense.participants) ? expense.participants.join(', ') : '';
+
 
                     // Added actions column class and align styling in CSS
                     row.innerHTML = `
                         <td>${formattedDate}</td>
-                        <td>${escapeHtml(expense.description)}</td>
-                        <td>${escapeHtml(expense.payer)}</td>
+                        <td>${escapeHtml(expense.description || '')}</td>
+                        <td>${escapeHtml(expense.payer || '')}</td>
                         <td>${formattedAmount}</td>
                         <td class="participants-list">${escapeHtml(participantsString)}</td>
                         <td class="actions">
@@ -623,21 +650,24 @@
                 participantsError.style.display = 'none';
                 if (participants.length === 0) {
                     participantsError.style.display = 'block';
+                    participantsError.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     return;
                 }
                  if (isNaN(amount) || amount <= 0) {
                     alert("Please enter a valid positive amount.");
+                    amountInput.focus();
                     return;
                  }
                  if (!description) {
                      alert("Please enter a description.");
+                     descriptionInput.focus();
                      return;
                  }
 
                 // --- Logic: Add or Update ---
                 if (expenseIdToUpdate) {
                     // --- UPDATE existing expense ---
-                    const expenseIndex = expenses.findIndex(exp => exp.id === expenseIdToUpdate);
+                    const expenseIndex = expenses.findIndex(exp => exp && exp.id === expenseIdToUpdate); // Check exp exists
                     if (expenseIndex > -1) {
                         expenses[expenseIndex] = {
                             ...expenses[expenseIndex], // Keep original id and timestamp
@@ -646,7 +676,6 @@
                             currency: currency,
                             description: description,
                             participants: participants
-                            // Note: Doesn't update timestamp on edit, could add updated_at if needed
                         };
                         console.log("Updated expense:", expenses[expenseIndex]);
                     } else {
@@ -680,20 +709,23 @@
              // Handle clicks on Edit or Delete buttons using Event Delegation
              function handleTableActions(event) {
                  const target = event.target; // The element that was clicked
+                 const button = target.closest('button'); // Find the nearest button ancestor
 
-                 if (target.classList.contains('delete-btn')) {
-                     const expenseId = parseInt(target.dataset.id, 10);
-                     handleDeleteExpense(expenseId);
-                 } else if (target.classList.contains('edit-btn')) {
-                     const expenseId = parseInt(target.dataset.id, 10);
-                     handleStartEditExpense(expenseId);
+                 if (!button) return; // Exit if the click wasn't on or inside a button
+
+                 if (button.classList.contains('delete-btn')) {
+                     const expenseId = parseInt(button.dataset.id, 10);
+                     if (!isNaN(expenseId)) handleDeleteExpense(expenseId);
+                 } else if (button.classList.contains('edit-btn')) {
+                     const expenseId = parseInt(button.dataset.id, 10);
+                      if (!isNaN(expenseId)) handleStartEditExpense(expenseId);
                  }
              }
 
 
             // Start editing an expense
             function handleStartEditExpense(expenseId) {
-                 const expenseToEdit = expenses.find(exp => exp.id === expenseId);
+                 const expenseToEdit = expenses.find(exp => exp && exp.id === expenseId); // Check exp exists
                  if (!expenseToEdit) {
                      console.error("Expense not found for editing:", expenseId);
                      alert("Could not find the expense to edit.");
@@ -708,7 +740,7 @@
 
                  // Set participant checkboxes
                  participantsListDiv.querySelectorAll('input[name="participants"]').forEach(cb => {
-                     cb.checked = expenseToEdit.participants.includes(cb.value);
+                     cb.checked = Array.isArray(expenseToEdit.participants) && expenseToEdit.participants.includes(cb.value);
                  });
 
                  // Switch form to edit mode
@@ -718,7 +750,7 @@
             // Handle deleting an expense
             function handleDeleteExpense(expenseId) {
                 if (confirm("Are you sure you want to delete this expense?")) {
-                    expenses = expenses.filter(expense => expense.id !== expenseId);
+                    expenses = expenses.filter(expense => expense && expense.id !== expenseId); // Check expense exists
                     saveExpenses();
                     renderExpensesTable();
                     renderSummary();
@@ -750,7 +782,13 @@
                 });
 
                 // Calculate net balance per person per currency
-                expenses.forEach(expense => {
+                (expenses || []).forEach(expense => { // Handle potential null/undefined expenses array
+                    // Basic validation for expense object structure during calculation
+                    if (!expense || typeof expense.amount !== 'number' || !Array.isArray(expense.participants)) {
+                         console.warn("Skipping calculation for invalid expense object:", expense);
+                         return;
+                    }
+
                     const payer = expense.payer;
                     const amount = expense.amount;
                     const currency = expense.currency;
@@ -762,7 +800,12 @@
                     if (balances[payer]) {
                         balances[payer][currency] += amount;
                     } else {
-                         console.warn(`Payer ${payer} not found in people list for expense ID ${expense.id}`);
+                         // If payer isn't in the 'people' array anymore, still track their balance
+                         if (!balances[payer]) {
+                              balances[payer] = { NIS: 0, EUR: 0 };
+                         }
+                         balances[payer][currency] += amount;
+                         console.warn(`Payer ${payer} from expense ID ${expense.id} was not in the initial 'people' list, but added to balances.`);
                     }
 
 
@@ -771,18 +814,24 @@
                          if (balances[participant]) {
                             balances[participant][currency] -= share;
                          } else {
-                             console.warn(`Participant ${participant} not found in people list for expense ID ${expense.id}`);
+                              // If participant isn't in 'people' array, track their balance too
+                             if (!balances[participant]) {
+                                  balances[participant] = { NIS: 0, EUR: 0 };
+                             }
+                             balances[participant][currency] -= share;
+                             console.warn(`Participant ${participant} from expense ID ${expense.id} was not in the initial 'people' list, but added to balances.`);
                          }
-
                     });
                 });
 
                 // --- Simplify debts for each currency ---
                 const transactions = { NIS: [], EUR: [] };
-                const epsilon = 0.01; // Tolerance for floating point comparisons (~1 agora / 1 cent)
+                const epsilon = 0.01; // Tolerance for floating point comparisons
+
+                const involvedPeople = Object.keys(balances); // Get all people who had any transaction
 
                 currencies.forEach(currency => {
-                    const currentBalances = people.map(person => ({ name: person, balance: balances[person][currency] }));
+                    const currentBalances = involvedPeople.map(person => ({ name: person, balance: balances[person][currency] }));
 
                     const debtors = currentBalances.filter(p => p.balance < -epsilon).sort((a, b) => a.balance - b.balance); // Most negative first
                     const creditors = currentBalances.filter(p => p.balance > epsilon).sort((a, b) => b.balance - a.balance); // Most positive first
@@ -823,52 +872,57 @@
 
             // Render the summary section
             function renderSummary() {
-                const summary = calculateSummary();
-                summaryContentDiv.innerHTML = ''; // Clear previous summary
+                summaryContentDiv.innerHTML = '<p>Calculating...</p>'; // Show calculating message
+                try {
+                    const summary = calculateSummary();
+                    summaryContentDiv.innerHTML = ''; // Clear calculating message
 
-                let hasAnyTransactions = false;
+                    let hasAnyTransactions = false;
 
-                ['NIS', 'EUR'].forEach(currency => {
-                    const currencyTransactions = summary[currency];
-                    const currencySymbol = currency === 'NIS' ? '₪' : '€';
+                    ['NIS', 'EUR'].forEach(currency => {
+                        const currencyTransactions = summary[currency];
+                        const currencySymbol = currency === 'NIS' ? '₪' : '€';
 
-                    const currencySection = document.createElement('div');
-                    currencySection.classList.add('summary-currency-section');
-                    currencySection.innerHTML = `<h3>${currency} Balances:</h3>`;
+                        const currencySection = document.createElement('div');
+                        currencySection.classList.add('summary-currency-section');
+                        currencySection.innerHTML = `<h3>${currency} Balances:</h3>`;
 
-                    if (currencyTransactions.length === 0) {
-                        currencySection.innerHTML += `<p class="no-transactions">Everyone is settled up in ${currency}.</p>`;
-                    } else {
-                        hasAnyTransactions = true; // Mark that we found some transactions
-                        const ul = document.createElement('ul');
-                        ul.style.listStyle = 'none'; // Remove default list styling
-                         ul.style.paddingLeft = '0';
+                        if (currencyTransactions.length === 0) {
+                            currencySection.innerHTML += `<p class="no-transactions">Everyone is settled up in ${currency}.</p>`;
+                        } else {
+                            hasAnyTransactions = true; // Mark that we found some transactions
+                            const ul = document.createElement('ul');
+                            ul.style.listStyle = 'none'; // Remove default list styling
+                             ul.style.paddingLeft = '0';
 
-                        currencyTransactions.forEach(t => {
-                            const li = document.createElement('li');
-                            li.classList.add('transaction');
-                            li.innerHTML = `
-                                <strong>${escapeHtml(t.from)}</strong> owes <strong>${escapeHtml(t.to)}</strong>
-                                <span class="amount-currency">${t.amount.toFixed(2)} ${currencySymbol}</span>
-                            `;
-                            ul.appendChild(li);
-                        });
-                         currencySection.appendChild(ul);
-                    }
-                    summaryContentDiv.appendChild(currencySection);
-                });
+                            currencyTransactions.forEach(t => {
+                                const li = document.createElement('li');
+                                li.classList.add('transaction');
+                                li.innerHTML = `
+                                    <strong>${escapeHtml(t.from)}</strong> owes <strong>${escapeHtml(t.to)}</strong>
+                                    <span class="amount-currency">${t.amount.toFixed(2)} ${currencySymbol}</span>
+                                `;
+                                ul.appendChild(li);
+                            });
+                             currencySection.appendChild(ul);
+                        }
+                        summaryContentDiv.appendChild(currencySection);
+                    });
 
-                 if (!hasAnyTransactions && expenses.length > 0) {
-                     // If there are expenses, but no transactions needed (maybe balanced out perfectly across all currencies)
-                     const p = document.createElement('p');
-                     p.classList.add('no-transactions');
-                     p.style.marginTop = '1rem'; // Add some space
-                     p.textContent = "Overall, everyone is settled up based on the logged expenses.";
-                     summaryContentDiv.appendChild(p);
-                 } else if (expenses.length === 0) {
-                      const p = document.createElement('p');
-                      p.textContent = "Add some expenses to see the balance summary.";
-                      summaryContentDiv.appendChild(p);
+                     if (!hasAnyTransactions && expenses && expenses.length > 0) { // Check expenses array exists
+                         const p = document.createElement('p');
+                         p.classList.add('no-transactions');
+                         p.style.marginTop = '1rem'; // Add some space
+                         p.textContent = "Overall, everyone is settled up based on the logged expenses.";
+                         summaryContentDiv.appendChild(p);
+                     } else if (!expenses || expenses.length === 0) {
+                          const p = document.createElement('p');
+                          p.textContent = "Add some expenses to see the balance summary.";
+                          summaryContentDiv.appendChild(p);
+                     }
+                 } catch (error) {
+                      console.error("Error rendering summary:", error);
+                      summaryContentDiv.innerHTML = '<p style="color: red;">Error calculating summary. Please check console.</p>';
                  }
             }
 
@@ -892,19 +946,20 @@
                 }
             }
 
-            // Utility to escape HTML to prevent XSS
-            function escapeHtml(unsafe) {
-                if (typeof unsafe !== 'string') {
-                    console.warn("Attempted to escape non-string value:", unsafe);
-                    return '';
-                }
-                return unsafe
-                     .replace(/&/g, "&")
-                     .replace(/</g, "<")
-                     .replace(/>/g, ">")
-                     .replace(/"/g, """)
-                     .replace(/'/g, "'");
-            }
+             // Utility to escape HTML to prevent XSS - CORRECTED VERSION
+             function escapeHtml(unsafe) {
+                 if (typeof unsafe !== 'string') {
+                     console.warn("Attempted to escape non-string value:", unsafe);
+                     return '';
+                 }
+                 // Replace special characters with their HTML entities
+                 return unsafe
+                      .replace(/&/g, "&")
+                      .replace(/</g, "<")
+                      .replace(/>/g, ">")
+                      .replace(/"/g, """) // Use " for double quotes
+                      .replace(/'/g, "'"); // Use ' for single quotes (or ')
+             }
 
 
             // --- Initialization ---
@@ -924,8 +979,10 @@
 
              // Add listener to participant checkboxes wrapper to clear error on change
              participantsListDiv.addEventListener('change', () => {
-                const anyChecked = participantsListDiv.querySelector('input[name="participants"]:checked');
-                participantsError.style.display = anyChecked ? 'none' : 'block';
+                 if(participantsError) { // Check if error element exists
+                    const anyChecked = participantsListDiv.querySelector('input[name="participants"]:checked');
+                    participantsError.style.display = anyChecked ? 'none' : 'block';
+                 }
              });
 
         }); // End DOMContentLoaded
